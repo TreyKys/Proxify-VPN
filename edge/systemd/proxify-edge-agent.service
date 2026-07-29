@@ -1,0 +1,35 @@
+[Unit]
+Description=Proxify edge agent (WireGuard peer management)
+After=network-online.target wg-quick@__WG_IF__.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/edge-agent \
+    --addr __LISTEN_ADDR__ \
+    --interface __WG_IF__ \
+    --token-file /etc/proxify/agent.token \
+    --state-dir /var/lib/proxify-edge __TLS_ARGS__
+Restart=always
+RestartSec=2
+
+# The agent needs root to run `wg set`, but nothing else on the box. These
+# restrictions are what keeps "the peer manager" from becoming "arbitrary code
+# execution as root" if it is ever exploited.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/etc/wireguard /var/lib/proxify-edge
+ReadOnlyPaths=/etc/proxify /etc/letsencrypt
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_DAC_OVERRIDE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

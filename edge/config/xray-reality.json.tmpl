@@ -1,0 +1,90 @@
+{
+  "//": "Proxify edge obfuscation. VLESS + XTLS Reality on 443, forwarding only to the local WireGuard port.",
+  "log": {
+    "//": "Warning level and no access log: we do not keep records of who connected or when. See docs/logging-policy.md.",
+    "loglevel": "warning",
+    "access": "none",
+    "dnsLog": false
+  },
+  "inbounds": [
+    {
+      "tag": "reality-in",
+      "listen": "0.0.0.0",
+      "port": 443,
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {
+            "id": "__UUID__",
+            "flow": "xtls-rprx-vision"
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "//": "Traffic that is not ours is transparently proxied to the real __SNI__, so an active prober sees exactly what it would see from that site.",
+          "show": false,
+          "dest": "__SNI__:443",
+          "xver": 0,
+          "serverNames": ["__SNI__"],
+          "privateKey": "__PRIVATE_KEY__",
+          "shortIds": ["__SHORT_ID__"]
+        }
+      },
+      "sniffing": {
+        "//": "Disabled deliberately: sniffing would have the box inspect and record destination hostnames, which is precisely what we promise not to do.",
+        "enabled": false
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "tag": "wireguard-local",
+      "protocol": "freedom",
+      "settings": {
+        "//": "Every accepted connection is redirected to the local WireGuard listener. This inbound cannot reach anything else.",
+        "redirect": "127.0.0.1:__WG_PORT__"
+      }
+    },
+    {
+      "tag": "block",
+      "protocol": "blackhole",
+      "settings": {}
+    }
+  ],
+  "routing": {
+    "domainStrategy": "AsIs",
+    "rules": [
+      {
+        "//": "The whitelist that keeps this from being an open proxy: our inbound goes to WireGuard, everything else is dropped.",
+        "type": "field",
+        "inboundTag": ["reality-in"],
+        "outboundTag": "wireguard-local"
+      },
+      {
+        "type": "field",
+        "network": "tcp,udp",
+        "outboundTag": "block"
+      }
+    ]
+  },
+  "policy": {
+    "levels": {
+      "0": {
+        "handshake": 4,
+        "connIdle": 300,
+        "uplinkOnly": 2,
+        "downlinkOnly": 5,
+        "statsUserUplink": false,
+        "statsUserDownlink": false
+      }
+    },
+    "system": {
+      "statsInboundUplink": false,
+      "statsInboundDownlink": false
+    }
+  }
+}
