@@ -17,3 +17,5 @@
 .env.*
 !.env.example
 /edge/state/
+/android/core/build/
+/android/*/build/

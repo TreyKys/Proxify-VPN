@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Proxify</string>
+
+    <string name="notification_channel_name">VPN status</string>
+    <string name="notification_channel_description">Shows whether your traffic is protected. Required for the VPN to keep running.</string>
+
+    <string name="action_disconnect">Disconnect</string>
+    <string name="server_unknown">server</string>
+
+    <string name="status_connected">Protected</string>
+    <string name="status_connected_detail">Connected to %1$s</string>
+
+    <string name="status_connecting">Connecting…</string>
+    <string name="status_connecting_detail">Setting up your tunnel</string>
+
+    <string name="status_reconnecting">Reconnecting…</string>
+    <string name="status_reconnecting_detail">Holding your traffic while we reconnect</string>
+
+    <!--
+      This wording is load-bearing. If the user's traffic is leaving the phone
+      unprotected, the notification has to say so in words anyone understands.
+    -->
+    <string name="status_unprotected">Not protected</string>
+    <string name="status_unprotected_detail">Your internet is working, but traffic is not going through the VPN</string>
+
+    <string name="status_no_network">No network</string>
+    <string name="status_no_network_detail">Waiting for a connection</string>
+
+    <string name="status_failed">Stopped</string>
+    <string name="status_failed_detail">Buy a pass or check your account</string>
+
+    <string name="status_disconnected">Off</string>
+    <string name="status_disconnected_detail">Tap connect to protect your traffic</string>
+</resources>
