@@ -1,0 +1,19 @@
+# Go
+/server/bin/
+*.test
+
+# Android
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
+/android/.idea/
+*.apk
+*.aab
+*.keystore
+
+# Local secrets and state
+.env
+.env.*
+!.env.example
+/edge/state/
