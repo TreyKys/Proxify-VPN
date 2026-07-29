@@ -1,11 +1,12 @@
 # Go
 /server/bin/
+/edge/bin/
 *.test
 
-# Android
-/android/.gradle/
-/android/build/
-/android/app/build/
+# Android / Gradle
+.gradle/
+.kotlin/
+build/
 /android/local.properties
 /android/.idea/
 *.apk
@@ -17,5 +18,3 @@
 .env.*
 !.env.example
 /edge/state/
-/android/core/build/
-/android/*/build/
