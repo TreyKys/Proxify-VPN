@@ -1,0 +1,21 @@
+# Local development database. Production Postgres is a managed instance or a
+# dedicated box — not this.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: proxify
+      POSTGRES_PASSWORD: proxify
+      POSTGRES_DB: proxify
+    ports:
+      - "5432:5432"
+    volumes:
+      - proxify-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U proxify"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  proxify-pg:
