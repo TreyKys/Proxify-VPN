@@ -18,11 +18,26 @@ machine from inside the emulator.
 |---|---|---|
 | Control plane | one small VPS behind Cloudflare | stateless; the reconciler uses `SKIP LOCKED`, so a second instance is safe |
 | Postgres | managed instance or a dedicated box | daily backups, tested restores |
-| Edge servers | Hetzner CX22 (EU), BuyVM/RackNerd, one Lagos VPS | see `edge/README.md` |
+| Edge servers | six locations, see `docs/locations.md` | driven from `infra/fleet.json` |
 | DNS + TLS | Cloudflare free tier | proxied for the API, **not** for the edge endpoints |
 
 Do not put edge egress on AWS/GCP: their bandwidth is ~50–75× Hetzner's, and
 egress is this business's main variable cost.
+
+## The fleet
+
+`infra/fleet.json` is the single source of truth for what exists and where.
+`edge/scripts/fleet.sh` drives it:
+
+```bash
+./edge/scripts/fleet.sh list
+./edge/scripts/fleet.sh provision uk-lon-1   # bootstrap + register over SSH
+./edge/scripts/fleet.sh promote uk-lon-1     # draining -> active
+./edge/scripts/fleet.sh status
+```
+
+Adding a location is one entry plus one command — no code change and no app
+update. See `docs/locations.md` for the six we launch with and why.
 
 ## Scale
 

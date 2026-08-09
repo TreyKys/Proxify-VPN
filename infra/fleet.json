@@ -1,0 +1,94 @@
+{
+  "//": "The edge fleet. Single source of truth for what exists and where.",
+  "//_adding": "Adding a location is a new entry here plus `fleet.sh provision <code>`. Nothing in the app or the control plane changes.",
+  "//_subnets": "Every location needs its own tunnel subnet. Keep allocating /16s out of 10.0.0.0/8 — there is room for 256 of them.",
+  "//_priority": "Lower wins in auto-selection, and priority is compared BEFORE the client's country. That ordering is what stops every Nigerian user landing on the metered Lagos box; see docs/locations.md.",
+  "//_capacity": "capacity_peers is a BANDWIDTH budget, not a RAM one. Roughly (monthly transfer) / 40GB per light user. On metered boxes, exceeding it means overage charges, not slowness.",
+
+  "defaults": {
+    "wg_port": 51820,
+    "agent_port": 8443,
+    "reality_sni": "www.microsoft.com"
+  },
+
+  "locations": [
+    {
+      "code": "uk-lon-1",
+      "display_name": "London",
+      "country_code": "GB",
+      "region": "eu-west",
+      "tunnel_subnet": "10.77.0.0/16",
+      "priority": 10,
+      "capacity_peers": 500,
+      "hostname": "uk-lon-1.proxify.ng",
+      "ssh_host": "root@uk-lon-1.proxify.ng",
+      "provider": "Contabo (Portsmouth) — unlimited traffic, fair use",
+      "note": "Default for auto-selection. Nigeria's submarine cables (MainOne, Glo-1, WACS, Equiano) land in Portugal and the UK, so London is the lowest-latency well-connected hop from Lagos — ahead of Frankfurt."
+    },
+    {
+      "code": "de-fsn-1",
+      "display_name": "Frankfurt",
+      "country_code": "DE",
+      "region": "eu-central",
+      "tunnel_subnet": "10.78.0.0/16",
+      "priority": 20,
+      "capacity_peers": 500,
+      "hostname": "de-fsn-1.proxify.ng",
+      "ssh_host": "root@de-fsn-1.proxify.ng",
+      "provider": "Hetzner CX22 (Falkenstein) — ~EUR 4.50, 20TB",
+      "note": "The bulk-capacity workhorse. Cheapest bandwidth in the fleet by a wide margin, so it absorbs overflow when London fills."
+    },
+    {
+      "code": "us-nyc-1",
+      "display_name": "New York",
+      "country_code": "US",
+      "region": "na-east",
+      "tunnel_subnet": "10.79.0.0/16",
+      "priority": 40,
+      "capacity_peers": 400,
+      "hostname": "us-nyc-1.proxify.ng",
+      "ssh_host": "root@us-nyc-1.proxify.ng",
+      "provider": "BuyVM New York — ~USD 3.50, unmetered gigabit",
+      "note": "US streaming and services. East coast, not west: ~70ms closer to Lagos via London."
+    },
+    {
+      "code": "ca-tor-1",
+      "display_name": "Toronto",
+      "country_code": "CA",
+      "region": "na-north",
+      "tunnel_subnet": "10.80.0.0/16",
+      "priority": 50,
+      "capacity_peers": 300,
+      "hostname": "ca-tor-1.proxify.ng",
+      "ssh_host": "root@ca-tor-1.proxify.ng",
+      "provider": "OVH Canada",
+      "note": "Large Nigerian diaspora and immigration-portal access."
+    },
+    {
+      "code": "za-jnb-1",
+      "display_name": "Johannesburg",
+      "country_code": "ZA",
+      "region": "af-south",
+      "tunnel_subnet": "10.81.0.0/16",
+      "priority": 50,
+      "capacity_peers": 80,
+      "hostname": "za-jnb-1.proxify.ng",
+      "ssh_host": "root@za-jnb-1.proxify.ng",
+      "provider": "Vultr Johannesburg — metered, a few TB included",
+      "note": "African content: DStv, Showmax, SuperSport. Metered bandwidth, hence the low capacity — watch this one's overage."
+    },
+    {
+      "code": "ng-lag-1",
+      "display_name": "Lagos",
+      "country_code": "NG",
+      "region": "af-west",
+      "tunnel_subnet": "10.82.0.0/16",
+      "priority": 90,
+      "capacity_peers": 50,
+      "hostname": "ng-lag-1.proxify.ng",
+      "ssh_host": "root@ng-lag-1.proxify.ng",
+      "provider": "Local Lagos DC (Melbicom / AbollyHost / telaHosting class) — metered, Naira billing",
+      "note": "The differentiator: a real Nigerian IP for betting, banking and local content. Deliberately the WORST priority in the fleet — expensive metered bandwidth means it must only ever be reached by explicit user choice, never by auto-selection."
+    }
+  ]
+}

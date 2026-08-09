@@ -25,6 +25,16 @@ make -C edge build                       # produces edge/bin/edge-agent
 The script is idempotent — re-run it after any change. It prints the exact
 `curl` needed to register the box with the control plane.
 
+For more than one box, drive it from the inventory instead of by hand:
+
+```bash
+./edge/scripts/fleet.sh provision uk-lon-1   # ssh, bootstrap, register
+./edge/scripts/fleet.sh promote uk-lon-1
+```
+
+`infra/fleet.json` holds every location's subnet, priority and capacity;
+`docs/locations.md` explains the six we launch with.
+
 A new box registers as **draining**: reachable and managed, but handed to no
 users. Verify it, then flip it to `active`. That ordering exists so a half-built
 box never receives real users.
@@ -60,8 +70,9 @@ through it — see `docs/logging-policy.md`.
 
 ## Hosting
 
-Per the brief: Hetzner (CX22-class) for the EU edge, BuyVM/RackNerd for cheap
-extra endpoints, and a Lagos VPS for a real Nigerian IP.
+Six launch locations across five providers — London, Frankfurt, New York,
+Toronto, Johannesburg and Lagos. `docs/locations.md` has the reasoning, the
+costs, and the rule that keeps auto-selection off the metered Lagos box.
 
 Do not use AWS/GCP for edge egress. Their bandwidth is ~$90/TB against Hetzner's
 ~€1.19/TB — egress is the main variable cost of this business, and a 50–75×

@@ -35,7 +35,8 @@ Then read, in this order:
 1. **`docs/decisions.md`** — stack confirmations, and the four things I'd change
 2. **`docs/provisioning.md`** — the critical path: payment → live tunnel → expiry
 3. **`docs/reliability.md`** — the differentiator, and how each part is tested
-4. **`docs/roadmap.md`** — what to build next, with pass/fail checkpoints
+4. **`docs/locations.md`** — the six launch locations, and what they cost
+5. **`docs/roadmap.md`** — what to build next, with pass/fail checkpoints
 
 ## The shape of it
 
@@ -65,6 +66,7 @@ a real database.
 |---|---|
 | Control plane, reconciler, payments | built and tested |
 | Edge agent, bootstrap script, Reality config | built; agent tested, script not yet run on a real box |
+| Fleet inventory — six locations | finalized and verified against a live control plane |
 | Reliability engine (§6) | built, 22 tests |
 | Android app layer | written; needs an SDK build and a device |
 | Accelerator seam (§5) | in place as a pass-through — v2 fills it |
