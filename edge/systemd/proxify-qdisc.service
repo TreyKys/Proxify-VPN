@@ -1,0 +1,16 @@
+[Unit]
+Description=Proxify edge queue discipline
+# Queue disciplines live on the interface, so they must be reapplied every time
+# wg-quick recreates it — otherwise they silently vanish after a reboot and the
+# box gets slower in a way nobody thinks to check.
+After=wg-quick@__WG_IF__.service
+Requires=wg-quick@__WG_IF__.service
+PartOf=wg-quick@__WG_IF__.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/proxify-qdisc.sh __WG_IF__
+
+[Install]
+WantedBy=multi-user.target wg-quick@__WG_IF__.service

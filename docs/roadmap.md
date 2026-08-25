@@ -47,6 +47,13 @@ never shows `UNPROTECTED` during a clean handoff.*
 → *Checkpoint: the tunnel is still up, or has reconnected itself, without the
 user touching the phone.*
 
+**0.5a Verify the app-catalog package names.** `AppCatalogTest` prints ~35
+entries whose package name is a best guess, mostly Nigerian banking and betting
+apps. A wrong name means the intended policy silently never applies — and
+banking is where that hurts. `adb shell pm list packages` against real installs.
+→ *Checkpoint: zero `needsVerification` entries left in the banking and betting
+categories.*
+
 **0.6 The obfuscation test.** Verify the Reality path carries traffic, and
 measure its memory and battery cost on a low-end device (see
 `docs/decisions.md` §3).
@@ -75,6 +82,13 @@ Instrument reconnect count, time-to-reconnect, and time spent `UNPROTECTED`.
 → *Checkpoint: median reconnect under 5s; `UNPROTECTED` under 1% of connected
 time. These are the numbers the marketing claim rests on — if they don't hold,
 fix the product before writing the claim.*
+
+**4a. The speed measurements.** Three numbers, per `docs/app-profiles.md`:
+throttled-content throughput with the VPN on vs off; latency under load with and
+without `cake` on the edge; and plain speed-test overhead on an unthrottled line.
+→ *Checkpoint: a defensible speed claim, or none. If throttled-content
+throughput is 2x or better we can say "streams your network slows down play at
+full speed" — and we know the baseline overhead number before a user posts it.*
 
 **5. Privacy policy, ToS, and the logging audit.** Walk `docs/logging-policy.md`
 against the deployed code and the boxes.

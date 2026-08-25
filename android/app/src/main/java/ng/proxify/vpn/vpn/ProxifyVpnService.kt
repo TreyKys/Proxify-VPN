@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import ng.proxify.core.ConnectionState
+import ng.proxify.core.apps.AppCatalog
 import ng.proxify.core.ConnectionStatus
 import ng.proxify.core.Fallback
 import ng.proxify.core.KillSwitchMode
@@ -183,8 +184,30 @@ class ProxifyVpnService : VpnService() {
         // Never route our own traffic into the tunnel: if the tunnel is down,
         // the API call that would fix it must still be able to get out.
         runCatching { builder.addDisallowedApplication(packageName) }
+        applyBypassList(builder)
 
         return builder.establish() ?: throw IllegalStateException("VpnService.establish() returned null")
+    }
+
+    /**
+     * Excludes the apps that work better outside the tunnel — see [AppCatalog].
+     *
+     * Bank apps fraud-flag a foreign IP, betting sites geo-lock to Nigeria, ride
+     * apps need your real location, and games only gain latency. Sending those
+     * direct is what makes them work, and it is why we do not need a Nigerian
+     * exit server to keep betting and banking usable.
+     *
+     * Each exclusion is attempted individually: `addDisallowedApplication`
+     * throws for a package that isn't installed, and on any given phone most of
+     * this list won't be.
+     */
+    private fun applyBypassList(builder: Builder) {
+        val packages = AppCatalog.bypassPackages() + repository.userBypassedPackages()
+        var applied = 0
+        packages.distinct().forEach { pkg ->
+            if (runCatching { builder.addDisallowedApplication(pkg) }.isSuccess) applied++
+        }
+        Log.i(TAG, "excluded $applied apps from the tunnel")
     }
 
     /**

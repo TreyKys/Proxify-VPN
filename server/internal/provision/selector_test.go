@@ -64,14 +64,14 @@ func TestSortServersBreaksTiesOnClientCountry(t *testing.T) {
 }
 
 // Country matching only breaks ties between servers of EQUAL priority. That
-// ordering is load-bearing for the bill, not a detail: the Lagos box runs on
-// metered Nigerian bandwidth at the worst priority in the fleet, and almost
-// every user is in Nigeria. If country matching were ever compared before
-// priority, every single user on "auto" would land on the most expensive box we
-// own and the egress bill would follow.
+// ordering is load-bearing for the bill, not a detail: almost every user is in
+// Nigeria, so if country were ever compared before priority, every user on
+// "auto" would pile onto whichever box happened to be in-country regardless of
+// what its bandwidth cost.
 //
-// The Lagos IP is a feature people choose deliberately, never a default.
-func TestAutoSelectionNeverDefaultsNigerianUsersToTheMeteredLagosBox(t *testing.T) {
+// The Lagos box is deferred (see docs/locations.md), but the rule is what makes
+// adding any expensive in-country box safe, so it is tested with one present.
+func TestAutoSelectionNeverDefaultsNigerianUsersToAnInCountryBox(t *testing.T) {
 	// Priorities and capacities mirror infra/fleet.json.
 	fleet := []model.Server{
 		srv("ng-lag-1", "NG", 90, 0, 50),
@@ -91,7 +91,7 @@ func TestAutoSelectionNeverDefaultsNigerianUsersToTheMeteredLagosBox(t *testing.
 
 // Explicitly asking for Lagos must still work — that is the whole point of
 // having it. Capacity is what protects the box, not obscurity.
-func TestFullLagosBoxYieldsToOthersInAutoSelection(t *testing.T) {
+func TestFullInCountryBoxYieldsToOthersInAutoSelection(t *testing.T) {
 	fleet := []model.Server{
 		srv("ng-lag-1", "NG", 90, 50, 50), // at capacity
 		srv("uk-lon-1", "GB", 10, 400, 500),

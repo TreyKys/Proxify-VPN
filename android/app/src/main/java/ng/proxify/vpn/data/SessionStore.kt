@@ -46,6 +46,23 @@ class SessionStore(context: Context) {
         if (code == null) storage.remove(KEY_SERVER) else storage.putString(KEY_SERVER, code)
     }
 
+    /**
+     * Apps the user has personally forced out of the tunnel.
+     *
+     * The catalog is a curated guess and will be wrong somewhere — a bank we
+     * missed, a package name that changed. This is the escape hatch that turns
+     * "this app is broken on Proxify" into a one-tap fix instead of a support
+     * ticket, and it is why an incomplete catalog is survivable.
+     */
+    fun userBypassedPackages(): Set<String> =
+        storage.getString(KEY_BYPASS)?.split(",")?.filter { it.isNotBlank() }?.toSet() ?: emptySet()
+
+    fun setAppBypassed(packageName: String, bypassed: Boolean) {
+        val current = userBypassedPackages().toMutableSet()
+        if (bypassed) current += packageName else current -= packageName
+        storage.putString(KEY_BYPASS, current.joinToString(","))
+    }
+
     /** Whether the user has been shown the battery-optimisation guidance. */
     fun batteryGuidanceShown(): Boolean = storage.getString(KEY_BATTERY) == "1"
 
@@ -65,5 +82,6 @@ class SessionStore(context: Context) {
         const val KEY_SERVER = "preferred_server"
         const val KEY_BATTERY = "battery_guidance"
         const val KEY_WANTED = "tunnel_wanted"
+        const val KEY_BYPASS = "bypassed_apps"
     }
 }

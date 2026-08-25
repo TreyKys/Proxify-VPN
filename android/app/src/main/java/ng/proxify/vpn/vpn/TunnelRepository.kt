@@ -45,6 +45,9 @@ class TunnelRepository(
 
     fun killSwitchMode(): KillSwitchMode = session.killSwitchMode()
 
+    /** Apps the user forced out of the tunnel; see [SessionStore]. */
+    fun userBypassedPackages(): Set<String> = session.userBypassedPackages()
+
     suspend fun provision(): ProvisionResult = withContext(Dispatchers.IO) {
         try {
             // Registering the device is idempotent on the server, so doing it

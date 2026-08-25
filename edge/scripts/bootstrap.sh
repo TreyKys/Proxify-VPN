@@ -131,6 +131,19 @@ fi
 
 systemctl enable --now "wg-quick@${WG_IF}" >/dev/null 2>&1 || systemctl restart "wg-quick@${WG_IF}"
 
+# ------------------------------------------------------------------ queueing
+
+# Fair queueing is the single highest-value knob on a congested box: it stops
+# one user's download from starving every other user's call. See qdisc.sh.
+log "installing queue discipline"
+install -m 0755 "$(dirname "$0")/qdisc.sh" /usr/local/bin/proxify-qdisc.sh
+install -m 0644 "$(dirname "$0")/../systemd/proxify-qdisc.service" \
+  /etc/systemd/system/proxify-qdisc.service
+sed -i "s|__WG_IF__|${WG_IF}|g" /etc/systemd/system/proxify-qdisc.service
+systemctl daemon-reload
+systemctl enable proxify-qdisc >/dev/null 2>&1 || true
+systemctl restart proxify-qdisc || warn "queue discipline failed to apply; check 'tc qdisc show'"
+
 # ------------------------------------------------------------------------- Xray
 
 # Xray provides the DPI-resistant path: clients that cannot get UDP out reach a

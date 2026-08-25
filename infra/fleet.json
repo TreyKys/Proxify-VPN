@@ -5,14 +5,12 @@
   "//_priority": "Lower wins in auto-selection, and priority is compared BEFORE the client's country. That ordering is what stops every Nigerian user landing on the metered Lagos box; see docs/locations.md.",
   "//_capacity": "capacity_peers is a BANDWIDTH budget, not a RAM one. Roughly (monthly transfer) / 40GB per light user. On metered boxes, exceeding it means overage charges, not slowness.",
   "//_enabled": "enabled:false entries are documented decisions, not live boxes. `fleet.sh provision all` skips them; flip to true and provision when they are wanted.",
-  "//_phase0": "Phase 0 runs on Alibaba Cloud free credits wherever Alibaba has a region. Alibaba has no Nigeria and no Canada region, and reaches South Africa only through the BCX reseller — so Lagos, the differentiator, is paid from day one. Migration is a provider swap in this file plus `fleet.sh provision`; see docs/locations.md.",
-
+  "//_phase0": "Phase 0 runs on Alibaba Cloud free credits wherever Alibaba has a region. Lagos is dropped for launch: no provider outside Nigeria can supply a Nigerian IP, and split tunnelling (docs/app-profiles.md) serves betting and banking better than a Lagos exit would. Migration is a provider swap in this file plus `fleet.sh provision`; see docs/locations.md.",
   "defaults": {
     "wg_port": 51820,
     "agent_port": 8443,
     "reality_sni": "www.microsoft.com"
   },
-
   "locations": [
     {
       "code": "uk-lon-1",
@@ -72,11 +70,12 @@
       "capacity_peers": 50,
       "hostname": "ng-lag-1.proxify.ng",
       "ssh_host": "root@ng-lag-1.proxify.ng",
-      "enabled": true,
-      "provider": "Local Lagos DC (Melbicom / AbollyHost / telaHosting class) — metered, Naira billing",
+      "enabled": false,
+      "provider": "DROPPED for launch — no cloud provider outside Nigeria can supply a Nigerian IP, and split tunnelling serves the same need better. Paid alternative if diaspora demand appears: a Lagos DC on IXPN.",
       "instance": "1-2 vCPU / 1-2 GiB",
       "public_bandwidth_mbps": 100,
-      "note": "The differentiator: a real Nigerian IP for betting, banking and local content. Alibaba Cloud has no Nigerian region, so this one is paid from day one — there is no free substitute. Deliberately the WORST priority in the fleet: metered Naira-billed bandwidth means it must only ever be reached by explicit user choice, never by auto-selection."
+      "note": "A Nigerian in Nigeria already has a Nigerian IP and does not need to buy one. The market for a Lagos exit is the diaspora, not our core users. Betting and banking — the reasons to want a Nigerian origin — are solved by bypassing those apps (see docs/app-profiles.md), which works better and costs nothing. Revisit only on a real diaspora demand signal, and require the host to be IXPN-connected so domestic traffic peers locally.",
+      "requires": "IXPN-connected host"
     },
     {
       "code": "ca-tor-1",
