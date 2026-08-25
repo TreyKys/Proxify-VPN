@@ -1,15 +1,21 @@
-# The six launch locations
+# Launch locations
 
-Finalized. The inventory lives in `infra/fleet.json`; this document is why.
+Six chosen, four live for Phase 0. The inventory lives in `infra/fleet.json`;
+this document is why.
 
-| # | Location | Code | Role | Priority | Capacity |
+| # | Location | Code | Role | Priority | Host |
 |---|---|---|---|---|---|
-| 1 | London, UK | `uk-lon-1` | **Default.** Lowest latency + most-wanted foreign IP | 10 | 500 |
-| 2 | Frankfurt, DE | `de-fsn-1` | Bulk capacity, cheapest bandwidth | 20 | 500 |
-| 3 | New York, US | `us-nyc-1` | US streaming and services | 40 | 400 |
-| 4 | Toronto, CA | `ca-tor-1` | Diaspora, immigration portals | 50 | 300 |
-| 5 | Johannesburg, ZA | `za-jnb-1` | African content — DStv, Showmax, SuperSport | 50 | 80 |
-| 6 | Lagos, NG | `ng-lag-1` | **The differentiator.** Real Nigerian IP | 90 | 50 |
+| 1 | London, UK | `uk-lon-1` | **Default.** Lowest latency + most-wanted foreign IP | 10 | Alibaba `eu-west-1` (free) |
+| 2 | Frankfurt, DE | `de-fra-1` | Overflow capacity | 20 | Alibaba `eu-central-1` (free) |
+| 3 | Virginia, US | `us-vir-1` | US streaming and services | 40 | Alibaba `us-east-1` (free) |
+| 4 | Lagos, NG | `ng-lag-1` | **The differentiator.** Real Nigerian IP | 90 | Local Lagos DC (paid) |
+| — | Toronto, CA | `ca-tor-1` | Diaspora, immigration portals | 50 | *deferred* |
+| — | Johannesburg, ZA | `za-jnb-1` | African content | 50 | *deferred* |
+
+**Phase 0 launches on four, three of them free.** Alibaba Cloud credits cover
+every location Alibaba actually has a region in; Toronto and Johannesburg are
+documented decisions in `infra/fleet.json` (`enabled: false`) waiting on a
+demand signal, not forgotten.
 
 ## Why these six
 
@@ -21,14 +27,16 @@ hop from Lagos and the single most-requested foreign location for this market
 (diaspora ties, UK content, UK-based services). It earns priority 10 on both
 counts.
 
-**Frankfurt is capacity, not a destination.** Hetzner at ~€4.50 for 20TB is
-several times cheaper per terabyte than anything else in the fleet. Its job is
-absorbing overflow when London fills, which is why it sits at priority 20 with
-the same 500-user capacity.
+**Frankfurt is capacity, not a destination.** Its job is absorbing overflow when
+London fills, which is why it sits at priority 20. Its migration target is
+Hetzner at ~€4.50 for 20TB — several times cheaper per terabyte than anything
+else available to us — which is what makes it the right home for bulk traffic
+once credits end.
 
-**New York over anywhere west.** US streaming and services are the second most
-requested. East coast is roughly 70ms closer to Lagos than the west, routed via
-London, and Netflix US works identically from either.
+**Virginia over anywhere west.** US streaming and services are the second most
+requested. The east coast is roughly 70ms closer to Lagos than the west, routed
+via London, and Netflix US works identically from either. (Alibaba's US region
+is Virginia; the eventual paid move is BuyVM New York, same coast.)
 
 **Toronto** serves a large and growing Nigerian diaspora, plus immigration
 portals that behave badly from foreign IPs.
@@ -58,28 +66,83 @@ left as a comment. Verified live against all six registered: a Nigerian user on
 auto gets London, the same user asking for `ng-lag-1` gets Lagos, and switching
 back tears the Lagos peer down.
 
+This matters more, not less, on free credits: Lagos is the one box the credits
+cannot pay for.
+
 `capacity_peers` is also a **bandwidth** budget here, not a RAM one — roughly
 monthly transfer divided by ~40GB per light user. On the metered boxes,
-exceeding it means overage charges rather than slowness, which is why
-Johannesburg is 80 and Lagos is 50 while Frankfurt is 500.
+exceeding it means overage charges rather than slowness, which is why Lagos is
+50 while London is 500. On Alibaba the same logic applies to metered egress —
+the credits are the budget, and `capacity_peers` is what keeps a box inside it.
 
-## Cost
+## Hosting: Alibaba Cloud for Phase 0
 
-| Location | Provider | Est. monthly |
+We run Phase 0 on Alibaba Cloud free credits. With no users and no launch,
+spending money to avoid a deferrable cost is backwards, and this codebase makes
+migration genuinely cheap — a location is a row in `infra/fleet.json`, and
+moving one is `fleet.sh provision` followed by `fleet.sh drain` on the old box.
+
+What the credits can and cannot do:
+
+| | |
+|---|---|
+| Covered by credits | London, Frankfurt, Virginia |
+| **Not available at any price** | **Lagos** — Alibaba has no Nigerian region |
+| Not covered | Toronto (no Alibaba region), Johannesburg (BCX reseller only) |
+
+Note the shape of that: the credits cover the three *cheapest* boxes (~$15/mo
+combined) and cannot touch the expensive one. Real saving is on the order of
+$15/mo against a ~$50–70 fleet, because Lagos is paid from day one regardless.
+
+### Migration targets, decided in advance
+
+So the swap is a decision already made rather than a scramble when credits end:
+
+| Location | Move to | Why |
 |---|---|---|
-| London | Contabo (Portsmouth), unlimited traffic | ~$6.50 |
-| Frankfurt | Hetzner CX22, 20TB | ~$5 |
-| New York | BuyVM, unmetered gigabit | ~$3.50 |
-| Toronto | OVH Canada | ~$6 |
-| Johannesburg | Vultr, metered | ~$6 |
-| Lagos | Local DC, metered, Naira | ~$25–40 |
-| | **Total** | **~$50–70/mo** |
+| Frankfurt | Hetzner CX22 | ~€4.50 for 20TB flat — cheapest bandwidth available to us |
+| London | Contabo (Portsmouth) | unlimited traffic, fair use |
+| Virginia → New York | BuyVM | ~$3.50, unmetered gigabit |
 
-Capacity across the fleet is about **1,830 light users**. Roughly 40–50
-monthly-pass subscribers covers the entire infrastructure bill, so this is
-comfortably OpEx rather than a capital constraint. Prices are estimates from
-public pricing and should be re-checked at purchase — Lagos especially, where
-metered billing makes the real number depend on usage.
+### The three Alibaba-specific traps
+
+**Metered egress is the AWS trap in a different hat.** Alibaba bills outbound
+traffic per GB (inbound free), tiered and region-specific — structurally the
+same model the brief already rules out for AWS/GCP. Credits hide that until
+they expire, which is exactly when you have enough users for it to hurt.
+
+**Set public bandwidth deliberately.** ECS instances default to a very low
+public bandwidth cap. Leave it at the default and the VPN will crawl, and it
+will look like our tunnel is broken rather than like a billing setting.
+`public_bandwidth_mbps` in the fleet file records the intended value.
+
+**Burstable shapes throttle under sustained load.** The lightest instances are
+burstable and run on CPU credits. At Phase 0 volumes — a handful of test
+devices — that is fine. Under real traffic, credit exhaustion drops you to a
+fraction of a core, which presents as the tunnel going slow: precisely the
+failure this product exists to avoid. Watch CPU credits before real users
+arrive, and move to a non-burstable shape at that point.
+
+### The line not to cross
+
+Free credits for a spike with no users and no real data is a sound call. What
+does not migrate cleanly is a launched reputation: our entire pitch is "we log
+almost nothing", Alibaba is Chinese-headquartered and subject to China's
+National Intelligence and Data Security laws, and VPN review sites dig into
+hosting and ownership as a matter of routine. There is also an NDPA
+cross-border transfer question once real user data is involved.
+
+So: **Alibaba for Phase 0 testing, off Alibaba before the privacy policy goes
+live and before real users' traffic flows.** That timing is a launch blocker in
+`docs/roadmap.md`, not a preference.
+
+### Testing caveat that will mislead you
+
+Cloud IP ranges — Alibaba's especially — are widely flagged by streaming
+services and some geo-restricted sites. The Virginia box exists for unblocking,
+and it may well fail at it while the tunnel itself works perfectly. Do not
+conclude the unblocking feature is broken without retesting on a
+residential-reputation provider.
 
 ## Operating the fleet
 

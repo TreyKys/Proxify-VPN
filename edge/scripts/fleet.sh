@@ -48,13 +48,17 @@ location() {
 
 codes() { jq -r '.locations[].code' "$FLEET"; }
 
+# enabled_codes — only locations that should actually have a box behind them.
+enabled_codes() { jq -r '.locations[] | select(.enabled != false) | .code' "$FLEET"; }
+
 cmd_list() {
-  printf '%-12s %-14s %-4s %-16s %-8s %-9s %s\n' CODE NAME CC SUBNET PRIORITY CAPACITY PROVIDER
-  jq -r '.locations[] | [.code, .display_name, .country_code, .tunnel_subnet,
+  printf '%-10s %-12s %-14s %-4s %-16s %-8s %-9s %s\n' STATE CODE NAME CC SUBNET PRIORITY CAPACITY PROVIDER
+  jq -r '.locations[] | [(if .enabled == false then "deferred" else "live" end),
+                         .code, .display_name, .country_code, .tunnel_subnet,
                          (.priority|tostring), (.capacity_peers|tostring), .provider]
          | @tsv' "$FLEET" |
-    while IFS=$'\t' read -r code name cc subnet prio cap provider; do
-      printf '%-12s %-14s %-4s %-16s %-8s %-9s %s\n' "$code" "$name" "$cc" "$subnet" "$prio" "$cap" "$provider"
+    while IFS=$'\t' read -r state code name cc subnet prio cap provider; do
+      printf '%-10s %-12s %-14s %-4s %-16s %-8s %-9s %s\n' "$state" "$code" "$name" "$cc" "$subnet" "$prio" "$cap" "$provider"
     done
 }
 
@@ -66,12 +70,19 @@ cmd_provision() {
   if [[ "$code" == "all" ]]; then
     # Sequential on purpose. Bootstrapping in parallel means interleaved output
     # and, when something fails, no idea which box it was.
-    for c in $(codes); do cmd_provision "$c"; done
+    for c in $(enabled_codes); do cmd_provision "$c"; done
     return
   fi
 
   local entry ssh_host hostname subnet cc region wg_port agent_port sni
   entry="$(location "$code")"
+
+  # A deferred location is a decision we wrote down, not a box. Provisioning one
+  # by name is allowed — you may be turning it on — but say so out loud.
+  if [[ "$(jq -r '.enabled // true' <<<"$entry")" == "false" ]]; then
+    warn "$code is marked enabled:false in $FLEET — $(jq -r '.provider' <<<"$entry")"
+    warn "Provisioning it anyway. Set enabled:true there so the fleet file matches reality."
+  fi
   ssh_host="$(jq -r '.ssh_host' <<<"$entry")"
   hostname="$(jq -r '.hostname' <<<"$entry")"
   subnet="$(jq -r '.tunnel_subnet' <<<"$entry")"
@@ -179,12 +190,15 @@ cmd_status() {
   log "servers the control plane will hand to users:"
   curl -fsS "$CONTROL_PLANE/v1/servers" | jq -r '.servers[] | "  \(.code)\t\(.country_code)\t\(.load)"'
   echo
-  log "inventory not yet active:"
+  log "expected but not active (provisioned? promoted?):"
   local active
   active="$(curl -fsS "$CONTROL_PLANE/v1/servers" | jq -r '.servers[].code')"
-  for c in $(codes); do
+  for c in $(enabled_codes); do
     grep -qx "$c" <<<"$active" || echo "  $c"
   done
+
+  log "deferred by decision (see $FLEET):"
+  jq -r '.locations[] | select(.enabled == false) | "  \(.code)\t\(.provider)"' "$FLEET"
 }
 
 cmd_set_status() {

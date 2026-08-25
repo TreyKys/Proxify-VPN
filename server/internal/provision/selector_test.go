@@ -76,8 +76,8 @@ func TestAutoSelectionNeverDefaultsNigerianUsersToTheMeteredLagosBox(t *testing.
 	fleet := []model.Server{
 		srv("ng-lag-1", "NG", 90, 0, 50),
 		srv("uk-lon-1", "GB", 10, 0, 500),
-		srv("de-fsn-1", "DE", 20, 0, 500),
-		srv("za-jnb-1", "ZA", 50, 0, 80),
+		srv("de-fra-1", "DE", 20, 0, 400),
+		srv("us-vir-1", "US", 40, 0, 300),
 	}
 	sortServers(fleet, "NG")
 

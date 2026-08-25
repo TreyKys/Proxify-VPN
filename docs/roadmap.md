@@ -27,8 +27,10 @@ options. Try option 1 (`GoBackend` owns the tun) first; fall back to the JNI
 shim only if the soft kill switch cannot be implemented on top of it.
 → *Checkpoint: a phone reaches the internet through a manually-configured peer.*
 
-**0.2 Bootstrap a real box.** Run `edge/scripts/bootstrap.sh` on a Hetzner
-CX22. Register it, promote it to `active`.
+**0.2 Bootstrap a real box.** Run `edge/scripts/bootstrap.sh` on the Alibaba
+London instance (`eu-west-1`, smallest burstable shape). Register it, promote it
+to `active`. Set public bandwidth explicitly — the ECS default cap is low enough
+to make a working tunnel look broken.
 → *Checkpoint: `bootstrap.sh` runs twice in a row with no error and no change on
 the second run.*
 
@@ -77,6 +79,17 @@ fix the product before writing the claim.*
 **5. Privacy policy, ToS, and the logging audit.** Walk `docs/logging-policy.md`
 against the deployed code and the boxes.
 → *Checkpoint: every claim in the policy maps to a line of code or a config file.*
+
+**5a. Migrate off Alibaba Cloud — launch blocker.** Phase 0 runs on Alibaba free
+credits, which is the right call with no users and no real data. It stops being
+the right call the moment a privacy policy is published and real traffic flows:
+Alibaba is Chinese-headquartered and subject to China's National Intelligence
+and Data Security laws, our entire pitch is "we log almost nothing", and VPN
+review sites dig into hosting as a matter of routine. Targets are pre-decided in
+`docs/locations.md`.
+→ *Checkpoint: no production edge box and no user data on Alibaba before the
+privacy policy goes live. Migration is `fleet.sh provision` on the new host then
+`fleet.sh drain` on the old — budget an evening, not a project.*
 
 **6. Play Store submission, and the APK.** Expect VPN-policy review friction;
 submit early so the review runs in parallel with the soak. Ship the direct APK
