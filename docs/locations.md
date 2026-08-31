@@ -1,166 +1,153 @@
 # Launch locations
 
-Six chosen, four live for Phase 0. The inventory lives in `infra/fleet.json`;
+Three live, hosted on AWS Lightsail. The inventory lives in `infra/fleet.json`;
 this document is why.
 
 | # | Location | Code | Role | Priority | Host |
 |---|---|---|---|---|---|
-| 1 | London, UK | `uk-lon-1` | **Default.** Lowest latency + most-wanted foreign IP | 10 | Alibaba `eu-west-1` (free) |
-| 2 | Frankfurt, DE | `de-fra-1` | Overflow capacity | 20 | Alibaba `eu-central-1` (free) |
-| 3 | Virginia, US | `us-vir-1` | US streaming and services | 40 | Alibaba `us-east-1` (free) |
-| — | Lagos, NG | `ng-lag-1` | *dropped — see below* | 90 | *deferred* |
-| — | Toronto, CA | `ca-tor-1` | Diaspora, immigration portals | 50 | *deferred* |
+| 1 | London, UK | `uk-lon-1` | **Default.** Lowest latency + most-wanted foreign IP | 10 | AWS Lightsail `eu-west-2` |
+| 2 | Frankfurt, DE | `de-fra-1` | Overflow capacity | 20 | AWS Lightsail `eu-central-1` |
+| 3 | Virginia, US | `us-vir-1` | US streaming and services | 40 | AWS Lightsail `us-east-1` |
+| — | Lagos, NG | `ng-lag-1` | *not planned — see below* | 90 | *n/a* |
+| — | Montreal, CA | `ca-mtl-1` | Diaspora, immigration portals | 50 | *deferred, but live-able* |
 | — | Johannesburg, ZA | `za-jnb-1` | African content | 50 | *deferred* |
 
-**Phase 0 launches on three, all free.** Alibaba Cloud credits cover every
-location Alibaba actually has a region in. The deferred three are documented
-decisions in `infra/fleet.json` (`enabled: false`) waiting on a demand signal,
-not forgotten.
+Three locations launch. The deferred entries are documented decisions in
+`infra/fleet.json` (`enabled: false`) waiting on a demand signal, not
+forgotten — and Montreal is a step away from live any time we want it (see
+below).
 
-## Why Lagos is dropped
+## Why AWS
+
+Single provider, one account, one bill, one set of credentials — real
+operational simplicity over juggling five smaller hosts. It is also the
+default a lot of people reach for regardless of the spreadsheet, and there is
+a case for going with what you'll actually operate confidently.
+
+The thing worth being precise about: **not raw EC2.** The brief's original
+instruction to avoid AWS/GCP for edge egress is about EC2's on-demand transfer
+pricing — roughly $0.09/GB with no allowance, the same ballpark as GCP. Metered
+per-gigabyte egress with no bundled allowance is exactly the trap that rule
+exists to avoid, and it is still true of raw EC2 today.
+
+**Lightsail is a different product.** It bundles a fixed amount of outbound
+data transfer into a flat monthly price — the same shape as Hetzner or
+Contabo, just sold by AWS. The Small bundle we're using is around $12/month
+for roughly 3TB included, which is the same mechanism that makes Hetzner cheap:
+pay once, know the cap, no metering as long as you stay under it.
+
+So: **AWS Lightsail, not AWS EC2.** The distinction is the whole reason this is
+safe to commit to rather than a repeat of the mistake the brief warned about.
+
+### The rule that keeps it safe: never let a box hit overage
+
+Lightsail's overage rate for transfer beyond the bundle is $0.09/GB — the
+**exact same rate** as raw EC2 on-demand egress. The bundle is what makes
+Lightsail cheap; going over it puts you right back in the trap.
+
+That is what `capacity_peers` in `infra/fleet.json` is for. It is set to
+roughly (bundle transfer) ÷ 40GB per light user — currently 75 users per Small
+bundle — deliberately conservative. The move when a location nears its cap is
+`fleet.sh drain` plus either a bigger bundle or a second box in the same
+region, never "let it run over and see."
+
+### Scaling up stays on-brand
+
+Because this is real paid infrastructure from day one rather than a credit
+that runs out, there's no forced-migration story. Growing a location is
+picking a bigger Lightsail bundle — the tiers scale up to 4TB, then higher, at
+roughly the same $/TB — or adding a second box in the region and letting the
+selector's load-based ordering split traffic between them. Both are `fleet.sh
+provision`, nothing more.
+
+At genuinely large volume, Hetzner-class flat pricing (~€4.50 for 20TB) is
+still meaningfully cheaper per terabyte than Lightsail's top tiers. That's a
+future cost-optimization to revisit once a location is consistently near
+capacity, not a launch requirement.
+
+### AWS's acceptable-use policy
+
+AWS prohibits operating **open** proxies — anonymous, unauthenticated relays,
+the kind used for abuse and spam. Proxify is not that: every peer is
+individually provisioned per account, and nothing forwards traffic for anyone
+we haven't authenticated. That said, cloud providers' tolerance for VPN/proxy
+services varies by discretion as much as by written policy, so treat this the
+same as the abuse-desk risk noted below rather than as a settled question —
+worth a compliance read before real volume, not before Phase 0 testing.
+
+### Testing caveat that will mislead you
+
+Cloud IP ranges — AWS's included — are widely flagged by streaming services
+and some geo-restricted sites. The Virginia box exists for unblocking, and it
+may well fail at that while the tunnel itself works perfectly. Don't conclude
+the unblocking feature is broken without retesting on a residential-reputation
+network.
+
+## Why Lagos is not planned
 
 It was going to be the differentiator. The reasoning was wrong, in a way worth
 recording so nobody re-argues it from scratch.
 
-**A Nigerian in Nigeria already has a Nigerian IP.** They do not need to buy one
-from us. The people who need a Lagos exit are Nigerians *abroad* reaching local
-banking and betting — the diaspora, which is a different and much smaller
-market than the domestic users this app is built for.
+**A Nigerian in Nigeria already has a Nigerian IP.** They don't need to buy one
+from us. The people who'd need a Lagos exit are Nigerians *abroad* reaching
+local banking and betting — the diaspora, a much smaller market than the
+domestic users this app is built for.
 
 **And the need it served is better met another way.** The reasons to want a
 Nigerian origin were betting and banking. Both are solved by **not tunnelling
-those apps at all** (see `docs/app-profiles.md`): instant, more reliable than a
-Lagos exit, and free. A user who wants Bet9ja to work does not need a Nigerian
-exit IP — they need Bet9ja to skip the tunnel.
+those apps at all** (see `docs/app-profiles.md`): instant, more reliable than
+a Lagos exit, and free. A user who wants Bet9ja to work doesn't need a
+Nigerian exit IP — they need Bet9ja to skip the tunnel.
 
-**No provider outside Nigeria can supply one anyway.** Neither Alibaba nor
-Oracle has a Nigerian region; a Nigerian egress IP requires a machine on a
-Nigerian network holding Nigerian IP space. It would have been the one box paid
-for in cash from day one, on metered Naira-billed bandwidth.
+**No provider we'd use can supply one anyway.** AWS has no Nigerian region,
+and neither does Alibaba or Oracle. A Nigerian egress IP requires a machine
+physically on a Nigerian network holding Nigerian IP space, sourced locally —
+the one box in this fleet that would ever be paid for in cash, on metered
+Naira-billed bandwidth.
 
-If diaspora demand shows up, the entry is still in the fleet file. Two
-conditions on bringing it back: a real demand signal, and an **IXPN-connected
-host** so domestic traffic peers locally instead of crossing paid transit.
+This is a settled decision for launch, not a "revisit later" placeholder. The
+entry stays in the fleet file only as a record of why, with the conditions
+that would ever justify reopening it (a real diaspora demand signal, and an
+IXPN-connected host) — see `docs/app-profiles.md` for the split-tunnelling
+approach that replaces it.
 
-## Why these six
+## Why these three
 
-**London is the default, not Frankfurt.** The brief assumed Germany/Finland was
-the closest well-connected region. The cable topology says otherwise: Nigeria's
-submarine cables — MainOne, Glo-1, WACS, Equiano — land in Portugal and the UK,
-and Frankfurt is reached *through* London. So London is both the lowest-latency
-hop from Lagos and the single most-requested foreign location for this market
-(diaspora ties, UK content, UK-based services). It earns priority 10 on both
-counts.
+**London is the default, not Frankfurt.** Nigeria's submarine cables —
+MainOne, Glo-1, WACS, Equiano — land in Portugal and the UK, so Frankfurt is
+reached *through* London. London is both the lowest-latency hop from Lagos and
+the single most-requested foreign location for this market (diaspora ties, UK
+content, UK-based services). Priority 10 on both counts.
 
-**Frankfurt is capacity, not a destination.** Its job is absorbing overflow when
-London fills, which is why it sits at priority 20. Its migration target is
-Hetzner at ~€4.50 for 20TB — several times cheaper per terabyte than anything
-else available to us — which is what makes it the right home for bulk traffic
-once credits end.
+**Frankfurt is capacity, not a destination.** Its job is absorbing overflow
+once London nears its transfer cap, which is why it sits at priority 20 with
+the identical bundle and capacity.
 
-**Virginia over anywhere west.** US streaming and services are the second most
-requested. The east coast is roughly 70ms closer to Lagos than the west, routed
-via London, and Netflix US works identically from either. (Alibaba's US region
-is Virginia; the eventual paid move is BuyVM New York, same coast.)
+**Virginia over anywhere west.** US streaming and services are the second
+most requested. The east coast is roughly 70ms closer to Lagos than the west,
+routed via London, and Netflix US works identically from either.
 
-**Toronto** serves a large and growing Nigerian diaspora, plus immigration
-portals that behave badly from foreign IPs.
+**Montreal** (AWS's `ca-central-1`, not physically Toronto — renamed from an
+earlier `ca-tor-1` to avoid claiming a location we don't have) serves a large
+and growing Nigerian diaspora and immigration portals that behave badly from
+foreign IPs. Live the moment demand justifies it.
 
-**Johannesburg** is the only African alternative IP worth having: DStv, Showmax
-and SuperSport are genuinely popular across the continent. It also gives the
-product an African story rather than "another Western VPN with a Lagos box".
+**Johannesburg** would be the only African alternative IP worth having — DStv,
+Showmax, SuperSport — and gives the product an African story instead of
+"another Western VPN." AWS has no Lightsail presence there yet, so it stays on
+the paid-alternative list.
 
-## The selector rule that made Lagos safe, and still matters
+## The selector rule that keeps any in-country box safe
 
-Almost every user is in Nigeria. The server selector breaks ties on the client's
-country — so if country matching were compared *before* priority, every user on
-"auto" would land on whichever box happened to be in Nigeria, regardless of what
-it cost.
+Almost every user is in Nigeria. The server selector breaks ties on the
+client's country — so if country matching were compared *before* priority,
+every user on "auto" would pile onto whichever box happened to be in-country,
+regardless of what it cost to run.
 
-It isn't. Priority is compared first. That was what kept the metered Lagos box
-off the default path, and the same rule now protects any future in-country box
-we add — so the test stays even though Lagos is deferred.
-
-That ordering is worth real money, so it is locked down by
-`TestAutoSelectionNeverDefaultsNigerianUsersToTheMeteredLagosBox` rather than
-left as a comment. Verified live against all six registered: a Nigerian user on
-auto gets London, the same user explicitly asking for an in-country box gets it,
-and switching back tears the old peer down.
-
-`capacity_peers` is also a **bandwidth** budget here, not a RAM one — roughly
-monthly transfer divided by ~40GB per light user. On the metered boxes,
-exceeding it means overage charges rather than slowness, which is why Lagos is
-50 while London is 500. On Alibaba the same logic applies to metered egress —
-the credits are the budget, and `capacity_peers` is what keeps a box inside it.
-
-## Hosting: Alibaba Cloud for Phase 0
-
-We run Phase 0 on Alibaba Cloud free credits. With no users and no launch,
-spending money to avoid a deferrable cost is backwards, and this codebase makes
-migration genuinely cheap — a location is a row in `infra/fleet.json`, and
-moving one is `fleet.sh provision` followed by `fleet.sh drain` on the old box.
-
-What the credits can and cannot do:
-
-| | |
-|---|---|
-| Covered by credits | London, Frankfurt, Virginia |
-| **Not available at any price** | **Lagos** — Alibaba has no Nigerian region |
-| Not covered | Toronto (no Alibaba region), Johannesburg (BCX reseller only) |
-
-Note the shape of that: the credits cover the three *cheapest* boxes (~$15/mo
-combined) and cannot touch the expensive one. Real saving is on the order of
-$15/mo against a ~$50–70 fleet, because Lagos is paid from day one regardless.
-
-### Migration targets, decided in advance
-
-So the swap is a decision already made rather than a scramble when credits end:
-
-| Location | Move to | Why |
-|---|---|---|
-| Frankfurt | Hetzner CX22 | ~€4.50 for 20TB flat — cheapest bandwidth available to us |
-| London | Contabo (Portsmouth) | unlimited traffic, fair use |
-| Virginia → New York | BuyVM | ~$3.50, unmetered gigabit |
-
-### The three Alibaba-specific traps
-
-**Metered egress is the AWS trap in a different hat.** Alibaba bills outbound
-traffic per GB (inbound free), tiered and region-specific — structurally the
-same model the brief already rules out for AWS/GCP. Credits hide that until
-they expire, which is exactly when you have enough users for it to hurt.
-
-**Set public bandwidth deliberately.** ECS instances default to a very low
-public bandwidth cap. Leave it at the default and the VPN will crawl, and it
-will look like our tunnel is broken rather than like a billing setting.
-`public_bandwidth_mbps` in the fleet file records the intended value.
-
-**Burstable shapes throttle under sustained load.** The lightest instances are
-burstable and run on CPU credits. At Phase 0 volumes — a handful of test
-devices — that is fine. Under real traffic, credit exhaustion drops you to a
-fraction of a core, which presents as the tunnel going slow: precisely the
-failure this product exists to avoid. Watch CPU credits before real users
-arrive, and move to a non-burstable shape at that point.
-
-### The line not to cross
-
-Free credits for a spike with no users and no real data is a sound call. What
-does not migrate cleanly is a launched reputation: our entire pitch is "we log
-almost nothing", Alibaba is Chinese-headquartered and subject to China's
-National Intelligence and Data Security laws, and VPN review sites dig into
-hosting and ownership as a matter of routine. There is also an NDPA
-cross-border transfer question once real user data is involved.
-
-So: **Alibaba for Phase 0 testing, off Alibaba before the privacy policy goes
-live and before real users' traffic flows.** That timing is a launch blocker in
-`docs/roadmap.md`, not a preference.
-
-### Testing caveat that will mislead you
-
-Cloud IP ranges — Alibaba's especially — are widely flagged by streaming
-services and some geo-restricted sites. The Virginia box exists for unblocking,
-and it may well fail at it while the tunnel itself works perfectly. Do not
-conclude the unblocking feature is broken without retesting on a
-residential-reputation provider.
+It isn't. Priority is compared first. `TestAutoSelectionNeverDefaultsNigerianUsersToAnInCountryBox`
+locks this down rather than leaving it as a comment, because it's the rule
+that makes it safe to ever add an in-country box again — Lagos or otherwise —
+without silently blowing through its bundle.
 
 ## Operating the fleet
 
@@ -169,14 +156,14 @@ residential-reputation provider.
 ./edge/scripts/fleet.sh provision uk-lon-1  # bootstrap + register over SSH
 ./edge/scripts/fleet.sh promote uk-lon-1    # draining -> active
 ./edge/scripts/fleet.sh status              # what the control plane believes
-./edge/scripts/fleet.sh drain za-jnb-1      # stop new users (e.g. nearing the cap)
-./edge/scripts/fleet.sh resync ng-lag-1     # after rebuilding a box
+./edge/scripts/fleet.sh drain de-fra-1      # stop new users (e.g. nearing the cap)
+./edge/scripts/fleet.sh resync uk-lon-1     # after rebuilding a box
 ```
 
-Every box registers as **draining** and only goes live when a human promotes it.
-A half-built server never receives a real user.
+Every box registers as **draining** and only goes live when a human promotes
+it. A half-built server never receives a real user.
 
-## Adding location #7
+## Adding a location
 
 One entry in `infra/fleet.json` with an unused `/16`, then
 `fleet.sh provision <code>`. No code change, no deploy, no app update — the
@@ -185,22 +172,13 @@ picker reads the server list from the API.
 Order the next ones by demand rather than by guessing. A "request a location"
 tap in the app turns that into a signal instead of an argument.
 
-## Two things to watch
+## One thing to watch
 
-**Abuse desks, not uptime, will be what kills a location.** VPN egress attracts
-DMCA and abuse reports, and provider tolerance varies enormously — some
-terminate on a single complaint with no warning. Six locations means five
-providers. Before committing, confirm in writing that each permits VPN egress,
-and keep the fleet file's `provider` note current so a terminated box is a
-ten-minute replacement rather than an investigation.
+**Abuse desks, not uptime, are what kill a location.** VPN egress attracts
+DMCA and abuse reports; provider tolerance varies, and some terminate on a
+single complaint with no warning. Being on one provider now makes this simpler
+to monitor, not harder to survive — keep an eye on it as volume grows.
 
-**Johannesburg and Lagos are metered.** Set up bandwidth alerts at both, and use
-`fleet.sh drain` when one approaches its cap. Draining stops new users while
-existing ones keep working — the graceful version of hitting a limit.
-
-Sources for provider availability and pricing:
-[HostAdvice — VPS Nigeria](https://hostadvice.com/vps/nigeria/),
-[Melbicom Lagos](https://www.melbicom.net/virtualserver/nigeria/),
-[telaHosting](https://telahosting.ng/blog/6-best-managed-vps-hosting-providers-in-nigeria/),
-[Vultr Johannesburg](https://www.datacenters.com/vultr-johannesburg),
-[Contabo VPS](https://contabo.com/en/vps-o/).
+Sources: [AWS Lightsail pricing](https://aws.amazon.com/lightsail/pricing),
+[AWS Acceptable Use Policy](https://aws.amazon.com/aup),
+[Vultr Johannesburg](https://www.datacenters.com/vultr-johannesburg).

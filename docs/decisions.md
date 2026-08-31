@@ -11,7 +11,7 @@ Task 1 from the brief: confirm the stack, flag anything I'd change and why.
 | Userspace (`wireguard-go`), not kernel | Confirmed. Android has no choice, and owning the userspace path is what keeps the §5 seam open. |
 | Prepaid time blocks, no recurring billing | Confirmed, and strongly. Failed-charge churn would be the single largest source of involuntary cancellation here. Blocks **stack** rather than overwrite, so topping up early never destroys time already paid for. |
 | Paystack | Confirmed. The webhook is the only thing that grants time; a client-reported success is a hint to re-check, never proof. |
-| Hetzner/BuyVM, never AWS/GCP for egress | Confirmed. At ~50–75× the bandwidth cost, cloud egress would invert the unit economics. |
+| Never raw EC2/GCP on-demand egress | Confirmed. At ~$0.09/GB with no bundled allowance, metered per-gigabyte egress would invert the unit economics. We host on **AWS Lightsail** instead — its bundled-transfer pricing is the same shape as Hetzner's, just sold by AWS; see `docs/locations.md`. The rule is "no metered on-demand egress," not "no AWS." |
 | Bash provisioning until 5+ servers | Confirmed. `edge/scripts/bootstrap.sh` is idempotent and readable top to bottom, which beats a config-management system nobody has debugged at 2am. |
 | Android first, Kotlin | Confirmed. minSdk 24 — raising it would cut off the low-end devices this product exists for. |
 

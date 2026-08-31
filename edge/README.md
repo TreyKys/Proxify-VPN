@@ -70,10 +70,10 @@ through it — see `docs/logging-policy.md`.
 
 ## Hosting
 
-Six launch locations across five providers — London, Frankfurt, New York,
-Toronto, Johannesburg and Lagos. `docs/locations.md` has the reasoning, the
-costs, and the rule that keeps auto-selection off the metered Lagos box.
+Three locations on AWS Lightsail — London, Frankfurt, Virginia. `docs/locations.md`
+has the reasoning, the pricing, and why it's Lightsail rather than raw EC2.
 
-Do not use AWS/GCP for edge egress. Their bandwidth is ~$90/TB against Hetzner's
-~€1.19/TB — egress is the main variable cost of this business, and a 50–75×
-multiplier on it is the difference between pennies and dollars per user.
+Never use raw EC2 (or GCP) on-demand transfer for edge egress — no bundled
+allowance, ~$0.09/GB, and egress is the main variable cost of this business.
+Lightsail sidesteps that by bundling transfer into the plan price the same way
+Hetzner does; the rule is "no metered on-demand egress," not "no AWS."

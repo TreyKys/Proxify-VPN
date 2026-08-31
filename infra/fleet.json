@@ -2,15 +2,17 @@
   "//": "The edge fleet. Single source of truth for what exists and where.",
   "//_adding": "Adding a location is a new entry here plus `fleet.sh provision <code>`. Nothing in the app or the control plane changes.",
   "//_subnets": "Every location needs its own tunnel subnet. Keep allocating /16s out of 10.0.0.0/8 — there is room for 256 of them.",
-  "//_priority": "Lower wins in auto-selection, and priority is compared BEFORE the client's country. That ordering is what stops every Nigerian user landing on the metered Lagos box; see docs/locations.md.",
-  "//_capacity": "capacity_peers is a BANDWIDTH budget, not a RAM one. Roughly (monthly transfer) / 40GB per light user. On metered boxes, exceeding it means overage charges, not slowness.",
+  "//_priority": "Lower wins in auto-selection, and priority is compared BEFORE the client's country. That ordering is what stops every Nigerian user piling onto whichever box happens to be in-country regardless of cost; see docs/locations.md.",
+  "//_capacity": "capacity_peers is a BANDWIDTH budget, not a RAM one — set to roughly (bundle's included transfer) / 40GB per light user. Going over it on Lightsail means the SAME $0.09/GB overage rate as raw EC2, i.e. exactly the trap bundled pricing exists to avoid. Upgrade the bundle or add a box before a location gets close.",
   "//_enabled": "enabled:false entries are documented decisions, not live boxes. `fleet.sh provision all` skips them; flip to true and provision when they are wanted.",
-  "//_phase0": "Phase 0 runs on Alibaba Cloud free credits wherever Alibaba has a region. Lagos is dropped for launch: no provider outside Nigeria can supply a Nigerian IP, and split tunnelling (docs/app-profiles.md) serves betting and banking better than a Lagos exit would. Migration is a provider swap in this file plus `fleet.sh provision`; see docs/locations.md.",
+  "//_phase0": "We host on AWS Lightsail, not raw EC2 — Lightsail bundles data transfer into the plan price the same way Hetzner does, which is what keeps us off EC2's ~$0.09/GB on-demand egress. No Lagos location: no cloud provider outside Nigeria can supply a Nigerian IP, and split tunnelling (docs/app-profiles.md) already serves betting and banking better than a Lagos exit would. See docs/locations.md.",
+
   "defaults": {
     "wg_port": 51820,
     "agent_port": 8443,
     "reality_sni": "www.microsoft.com"
   },
+
   "locations": [
     {
       "code": "uk-lon-1",
@@ -19,14 +21,13 @@
       "region": "eu-west",
       "tunnel_subnet": "10.77.0.0/16",
       "priority": 10,
-      "capacity_peers": 500,
+      "capacity_peers": 75,
       "hostname": "uk-lon-1.proxify.ng",
       "ssh_host": "root@uk-lon-1.proxify.ng",
       "enabled": true,
-      "provider": "Alibaba Cloud ECS, eu-west-1 (London) — free credits",
-      "instance": "smallest burstable shape, 1-2 vCPU / 1-2 GiB (verify the SKU at purchase)",
-      "public_bandwidth_mbps": 100,
-      "note": "Default for auto-selection. Nigeria's submarine cables (MainOne, Glo-1, WACS, Equiano) land in Portugal and the UK, so London is the lowest-latency well-connected hop from Lagos — ahead of Frankfurt."
+      "provider": "AWS Lightsail, eu-west-2 (London)",
+      "instance": "Small bundle — 2 vCPU / 2 GiB / 60 GB SSD / ~3 TB transfer, ~$12/mo (verify the exact bundle and price at purchase)",
+      "note": "Default for auto-selection. Nigeria's submarine cables (MainOne, Glo-1, WACS, Equiano) land in Portugal and the UK, so London is the lowest-latency well-connected hop from Lagos — ahead of Frankfurt. Also the single most-requested foreign location for this market."
     },
     {
       "code": "de-fra-1",
@@ -35,14 +36,13 @@
       "region": "eu-central",
       "tunnel_subnet": "10.78.0.0/16",
       "priority": 20,
-      "capacity_peers": 400,
+      "capacity_peers": 75,
       "hostname": "de-fra-1.proxify.ng",
       "ssh_host": "root@de-fra-1.proxify.ng",
       "enabled": true,
-      "provider": "Alibaba Cloud ECS, eu-central-1 (Frankfurt) — free credits",
-      "instance": "smallest burstable shape, 1-2 vCPU / 1-2 GiB (verify the SKU at purchase)",
-      "public_bandwidth_mbps": 100,
-      "note": "Overflow capacity behind London. Migration target when credits run out is Hetzner CX22 (Falkenstein): ~EUR 4.50 for 20TB flat, the cheapest bandwidth available to us anywhere."
+      "provider": "AWS Lightsail, eu-central-1 (Frankfurt)",
+      "instance": "Small bundle — 2 vCPU / 2 GiB / 60 GB SSD / ~3 TB transfer, ~$12/mo (verify the exact bundle and price at purchase)",
+      "note": "Overflow capacity behind London — absorbs users once London nears its bundle's transfer cap."
     },
     {
       "code": "us-vir-1",
@@ -51,14 +51,13 @@
       "region": "na-east",
       "tunnel_subnet": "10.79.0.0/16",
       "priority": 40,
-      "capacity_peers": 300,
+      "capacity_peers": 75,
       "hostname": "us-vir-1.proxify.ng",
       "ssh_host": "root@us-vir-1.proxify.ng",
       "enabled": true,
-      "provider": "Alibaba Cloud ECS, us-east-1 (Virginia) — free credits",
-      "instance": "smallest burstable shape, 1-2 vCPU / 1-2 GiB (verify the SKU at purchase)",
-      "public_bandwidth_mbps": 100,
-      "note": "US streaming and services. East coast, closest US point to Lagos via London. Expect cloud IP ranges here to be blocked by major streaming services — test unblocking against a residential-reputation provider before concluding the feature does not work."
+      "provider": "AWS Lightsail, us-east-1 (N. Virginia)",
+      "instance": "Small bundle — 2 vCPU / 2 GiB / 60 GB SSD / ~3 TB transfer, ~$12/mo (verify the exact bundle and price at purchase)",
+      "note": "US streaming and services. East coast, closest US point to Lagos via London. Cloud IP ranges (AWS included) are widely flagged by streaming services — test unblocking before concluding the feature does not work; it may fail here while the tunnel itself works perfectly."
     },
     {
       "code": "ng-lag-1",
@@ -71,27 +70,25 @@
       "hostname": "ng-lag-1.proxify.ng",
       "ssh_host": "root@ng-lag-1.proxify.ng",
       "enabled": false,
-      "provider": "DROPPED for launch — no cloud provider outside Nigeria can supply a Nigerian IP, and split tunnelling serves the same need better. Paid alternative if diaspora demand appears: a Lagos DC on IXPN.",
-      "instance": "1-2 vCPU / 1-2 GiB",
-      "public_bandwidth_mbps": 100,
-      "note": "A Nigerian in Nigeria already has a Nigerian IP and does not need to buy one. The market for a Lagos exit is the diaspora, not our core users. Betting and banking — the reasons to want a Nigerian origin — are solved by bypassing those apps (see docs/app-profiles.md), which works better and costs nothing. Revisit only on a real diaspora demand signal, and require the host to be IXPN-connected so domestic traffic peers locally.",
-      "requires": "IXPN-connected host"
+      "provider": "NOT PLANNED — no cloud provider, AWS included, has a Nigerian region. A Nigerian IP requires a machine physically on a Nigerian network holding Nigerian IP space.",
+      "instance": "n/a",
+      "note": "Decided against for launch, not merely deferred. A Nigerian user in Nigeria already has a Nigerian IP and does not need to buy one from us; the market for a Lagos exit is the diaspora, a much smaller group than our core users. Betting and banking — the reasons anyone would want a Nigerian origin — are solved by bypassing those apps (docs/app-profiles.md), which works better and costs nothing. Left in this file only as a record of the decision.",
+      "requires": "IXPN-connected host, if this is ever revisited"
     },
     {
-      "code": "ca-tor-1",
-      "display_name": "Toronto",
+      "code": "ca-mtl-1",
+      "display_name": "Montreal",
       "country_code": "CA",
       "region": "na-north",
       "tunnel_subnet": "10.80.0.0/16",
       "priority": 50,
-      "capacity_peers": 300,
-      "hostname": "ca-tor-1.proxify.ng",
-      "ssh_host": "root@ca-tor-1.proxify.ng",
+      "capacity_peers": 75,
+      "hostname": "ca-mtl-1.proxify.ng",
+      "ssh_host": "root@ca-mtl-1.proxify.ng",
       "enabled": false,
-      "provider": "DEFERRED — Alibaba Cloud has no Canadian region. Paid alternative: OVH Canada, ~USD 6/mo.",
-      "instance": "1-2 vCPU / 1-2 GiB",
-      "public_bandwidth_mbps": 100,
-      "note": "Diaspora and immigration portals. Real demand, but it costs money Alibaba credits cannot cover, so it waits for a demand signal rather than launching on spec."
+      "provider": "AWS Lightsail, ca-central-1 (Montreal) — now available; was blocked on Alibaba, which has no Canadian region",
+      "instance": "Small bundle — 2 vCPU / 2 GiB / 60 GB SSD / ~3 TB transfer, ~$12/mo (verify the exact bundle and price at purchase)",
+      "note": "Diaspora and immigration portals. ca-central-1 is physically Montreal, not Toronto — renamed from ca-tor-1 to avoid claiming a location we don't have. Technically live-able the moment we provision it; still waiting on a demand signal rather than launching on spec."
     },
     {
       "code": "za-jnb-1",
@@ -100,14 +97,13 @@
       "region": "af-south",
       "tunnel_subnet": "10.81.0.0/16",
       "priority": 50,
-      "capacity_peers": 80,
+      "capacity_peers": 40,
       "hostname": "za-jnb-1.proxify.ng",
       "ssh_host": "root@za-jnb-1.proxify.ng",
       "enabled": false,
-      "provider": "DEFERRED — Alibaba reaches South Africa only via the BCX (Telkom) reseller, not a native region, so free credits almost certainly do not apply. Paid alternative: Vultr Johannesburg, ~USD 6/mo, metered.",
+      "provider": "DEFERRED — Lightsail has no Cape Town region (AWS's own af-south-1 does, but raw EC2 there is back to metered on-demand egress). Paid alternative: Vultr Johannesburg, ~USD 6/mo, metered.",
       "instance": "1-2 vCPU / 1-2 GiB",
-      "public_bandwidth_mbps": 100,
-      "note": "African content: DStv, Showmax, SuperSport. Same reasoning as Toronto — wait for demand."
+      "note": "African content: DStv, Showmax, SuperSport. Same reasoning as Montreal — wait for demand."
     }
   ]
 }

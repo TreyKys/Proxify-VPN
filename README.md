@@ -67,7 +67,7 @@ a real database.
 |---|---|
 | Control plane, reconciler, payments | built and tested |
 | Edge agent, bootstrap script, Reality config | built; agent tested, script not yet run on a real box |
-| Fleet inventory | three live on free credits; Lagos dropped, two deferred |
+| Fleet inventory | three live on AWS Lightsail; Lagos not planned, two more deferred |
 | App profiles — ~100 apps, per-app routing + queueing | built, 27 tests |
 | Reliability engine (§6) | built, 22 tests |
 | Android app layer | written; needs an SDK build and a device |
