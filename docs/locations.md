@@ -54,16 +54,39 @@ region, never "let it run over and see."
 ### Scaling up stays on-brand
 
 Because this is real paid infrastructure from day one rather than a credit
-that runs out, there's no forced-migration story. Growing a location is
-picking a bigger Lightsail bundle — the tiers scale up to 4TB, then higher, at
-roughly the same $/TB — or adding a second box in the region and letting the
-selector's load-based ordering split traffic between them. Both are `fleet.sh
-provision`, nothing more.
+that runs out, there's no forced-migration story. Growing a location is a
+bigger Lightsail bundle — the tiers scale up to 4TB, then higher, at roughly
+the same $/TB — or a second box in the region, with the selector's load-based
+ordering splitting traffic between them. Note that Lightsail doesn't resize an
+instance in place: moving to a bigger bundle is snapshot-and-recreate, with
+the static IP reattached to the new instance. Worth picking the tier you'll
+actually run rather than planning to grow into it later.
 
 At genuinely large volume, Hetzner-class flat pricing (~€4.50 for 20TB) is
 still meaningfully cheaper per terabyte than Lightsail's top tiers. That's a
 future cost-optimization to revisit once a location is consistently near
 capacity, not a launch requirement.
+
+### Compute doesn't buy network speed — but it does buy headroom
+
+Benchmarks show every Lightsail bundle, including the cheapest, tops out at
+roughly the same ~3–5Gbps raw throughput. Paying more doesn't buy a faster
+pipe; it buys a bigger transfer allowance and more baseline CPU/RAM.
+
+The RAM genuinely doesn't matter here — WireGuard is light. The CPU can,
+because every Lightsail bundle is burstable underneath, the same credit
+mechanism as EC2's t2/t3 family. WireGuard's encryption cost scales with
+*throughput*, not headcount — many people streaming at once is real,
+sustained CPU load — and the Reality/Xray fallback path runs a second process
+on the same core. A box that has burned through its CPU credits throttles,
+and a throttled box presents to a user as exactly the failure this product
+exists to prevent: a slow VPN.
+
+**Small is the floor for anything carrying real traffic.** The rock-bottom
+Nano tier is fine for solo Phase 0 testing, where sustained load never
+happens — but confirm with CloudWatch/Lightsail's own CPU-credit graphs during
+the Phase 0 soak rather than assume a tier is fine because the network
+benchmark looked flat.
 
 ### AWS's acceptable-use policy
 

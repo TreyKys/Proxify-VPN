@@ -89,6 +89,13 @@ without `cake` on the edge; and plain speed-test overhead on an unthrottled line
 throughput is 2x or better we can say "streams your network slows down play at
 full speed" — and we know the baseline overhead number before a user posts it.*
 
+**4b. CPU-credit check on each Lightsail box.** Pull the CPU-credit graph for
+each box during the soak, under real concurrent load. Lightsail's bundles are
+burstable underneath, and a throttled box is indistinguishable from a slow VPN
+to the user — see `docs/locations.md`.
+→ *Checkpoint: no box shows CPU-credit exhaustion during the soak. If one does,
+that location moves up a bundle tier before real users arrive on it.*
+
 **5. Privacy policy, ToS, and the logging audit.** Walk `docs/logging-policy.md`
 against the deployed code and the boxes.
 → *Checkpoint: every claim in the policy maps to a line of code or a config file.*
